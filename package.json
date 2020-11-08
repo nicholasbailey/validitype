@@ -4,7 +4,12 @@
   "description": "A flexible validation and type checking library for Typescript",
   "main": "lib/index.js",
   "scripts": {
-    "test": "npx jest"
+    "test": "npx jest",
+    "build": "npx tsc",
+    "perpare": "npm run build",
+    "prepublishOnly": "npm test",
+    "version": "git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "repository": {
     "type": "git",
