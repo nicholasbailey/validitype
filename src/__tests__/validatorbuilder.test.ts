@@ -83,7 +83,7 @@ describe('The fluent validator builder API', () => {
     describe('withRule', () => {
         it('should allow us to create a validation rule based on a boolean check', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!')
+                .withRule([(ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!'])
 
             const validSpaceship = aValidSpaceShip()
             const invalidSpaceship = { name: 'A big rock', crew: 0 }
@@ -94,8 +94,8 @@ describe('The fluent validator builder API', () => {
 
         it('should allow us to create any number of boolean rules', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!')
-                .withRule((ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!')
+                .withRule([(ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!'])
+                .withRule([(ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!'])
 
             expect(validator(aValidSpaceShip())).toBe(true)
             expect(validator({ name: 'A big rock', crew: 0 })).toBe(false)
@@ -104,8 +104,8 @@ describe('The fluent validator builder API', () => {
 
         it('should accumulate errors in an error collector if one is passed in', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!')
-                .withRule((ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!')
+                .withRule([(ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!'])
+                .withRule([(ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!'])
             const errorCollector: ValidationError[] = []
 
             validator({}, errorCollector)
@@ -118,8 +118,8 @@ describe('The fluent validator builder API', () => {
 
         it('should only accumulate errors for errors that occur', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!')
-                .withRule((ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!')
+                .withRule([(ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!'])
+                .withRule([(ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!'])
             const errorCollector: ValidationError[] = []
 
             validator({ crewCount: 137 }, errorCollector)
@@ -131,8 +131,8 @@ describe('The fluent validator builder API', () => {
 
         it('should extend errors with the path passed in if there is one', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!')
-                .withRule((ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!')
+                .withRule([(ship) => ship.crewCount > 0, (ship) => 'Spaceships need a crew!'])
+                .withRule([(ship) => ship.name && ship.name.length > 0, (ship) => 'Spaceships need cool names!'])
             const errorCollector: ValidationError[] = []
 
             validator({}, errorCollector, "spaceship")
@@ -147,8 +147,8 @@ describe('The fluent validator builder API', () => {
     describe('withRuleFor', () => {
         it('should allow us to set rules for sub-properties', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const isValid = validator(aValidSpaceShip())
 
@@ -157,8 +157,8 @@ describe('The fluent validator builder API', () => {
 
         it('should check rules for those subproperties', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const isValid = validator({ crewCount: 0, name: '???' })
 
@@ -167,8 +167,8 @@ describe('The fluent validator builder API', () => {
 
         it('should implicitly check for the presence of the field', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const isValid = validator({})
 
@@ -177,8 +177,8 @@ describe('The fluent validator builder API', () => {
 
         it('should support any number of rules for a field', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('name', (name) => name.length < 50, (name) => `${name} is too darn long`)
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('name', [(name) => name.length < 50, (name) => `${name} is too darn long`])
 
             const isValid = validator({
                 name: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
@@ -189,9 +189,9 @@ describe('The fluent validator builder API', () => {
 
         it('should output error messages for rules based on they value associated with the key, with an appropriate path', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('name', (name) => name.length < 50, (name) => `${name} is too darn long`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('name', [(name) => name.length < 50, (name) => `${name} is too darn long`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const errorCollector: ValidationError[] = []
             const isValid = validator({
@@ -208,9 +208,9 @@ describe('The fluent validator builder API', () => {
 
         it('should join the field paths to any path passed in as a context', () => {
             const validator = validatorFor<Spaceship>()
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('name', (name) => name.length < 50, (name) => `${name} is too darn long`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('name', [(name) => name.length < 50, (name) => `${name} is too darn long`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const errorCollector: ValidationError[] = []
             const isValid = validator({
@@ -228,10 +228,10 @@ describe('The fluent validator builder API', () => {
 
         it('should be combineable with normal rules', () => {
             const validator = validatorFor<Spaceship>()
-                .withRule((ship) => ship.engines !== undefined, (ship) => 'Spaceships need engines!')
-                .withRuleFor('name', (name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`)
-                .withRuleFor('name', (name) => name.length < 50, (name) => `${name} is too darn long`)
-                .withRuleFor('crewCount', (count) => count > 0, (crewCount) => 'Spaceships need a crew!')
+                .withRule([(ship) => ship.engines !== undefined, (ship) => 'Spaceships need engines!'])
+                .withRuleFor('name', [(name) => name.match(/^[a-zA-Z0-9 ]+/), (name) => `${name} is not alphanumeric`])
+                .withRuleFor('name', [(name) => name.length < 50, (name) => `${name} is too darn long`])
+                .withRuleFor('crewCount', [(count) => count > 0, (crewCount) => 'Spaceships need a crew!'])
 
             const errorCollector: ValidationError[] = []
             const isValid = validator({
@@ -254,22 +254,20 @@ describe('The fluent validator builder API', () => {
 
         beforeAll(() => {
             const engineValidator = validatorFor<SpaceshipEngine>()
-                .withRuleFor(
-                    'type',
+                .withRuleFor('type', [
                     (engineType) => engineType === 'Fusion Rocket' || engineType === 'Chemical Rocket',
                     (engineType) => `${engineType} is not a valid engine type`
-                ).withRule(
+                ]).withRule([
                     (engines) => engines.safeInAtmosphere === false || engines.type === 'Chemical Rocket',
                     (engines) => 'Only chemical rockets are possibly safe in the atmosphere'
-                )
+                ])
 
             spaceshipValidator = validatorFor<Spaceship>()
 
-                .withRuleFor(
-                    'name',
+                .withRuleFor('name', [
                     (name) => name && name.length > 0,
                     (name) => 'Spaceships need cool names'
-                ).withSubValidator(
+                ]).withSubValidator(
                     'engines',
                     engineValidator
                 )

@@ -91,6 +91,8 @@ export type Check = (value: any) => boolean
  */
 export type ErrorMessageBuilder = (value: any) => ErrorMessage
 
+export type ValidationRule = [Check, ErrorMessageBuilder]
+
 /**
  * A validator that also implements the builder pattern, allowing us
  * to define validators elegantly through chained function calls. 
@@ -112,27 +114,12 @@ export type ErrorMessageBuilder = (value: any) => ErrorMessage
  * ValidatorBuilders should only be instantiated via the factory function validatorFor
  */
 export interface ValidatorBuilder<T> extends Validator<T> {
-    /**
-     * Adds a validation rule checking the object
-     * 
-     * @param {Check} check - the validation function to use
-     * @param {ErrorMessageBuilder} - a function for generating an error message if the object is not valid
-     */
-    withRule(check: Check, errorMessageBuilder: ErrorMessageBuilder): ValidatorBuilder<T>
-    /**
-     * Adds a sub-validator for a field. 
-     * All error messages from a subvalidator will have the field key appended to their paths
-     * so that a subvalidator for the field 'dateOfBirth' will have path 'dateOfBirth'
-     * as we nest multiple layers of validators, the path will build up (e.g. foo.bar.baz)
-     * 
-     * @param {K} key - a key of our object, the value of which will be validated using the subvalidator
-     * @param {Validator<T[K]>} - the validator to use a subvalidator 
-     */
+
+    withRule(rule: ValidationRule): ValidatorBuilder<T>
+
     withSubValidator<K extends keyof T>(key: K, validator: Validator<T[K]>): ValidatorBuilder<T>
 
-    withRuleFor<K extends keyof T & string>(key: K, check: Check, errorMessageBuilder: ErrorMessageBuilder): ValidatorBuilder<T>
-
-    // withCollectionSubvalidator<K extends keyof T, U>(key: K, validator: Validator<U>): ValidatorBuilder<T>
+    withRuleFor<K extends keyof T & string>(key: K, rule: ValidationRule): ValidatorBuilder<T>
 }
 
 
@@ -141,7 +128,8 @@ function joinObjectPaths(...paths: (string | undefined)[]) {
     return paths.filter(x => x !== undefined).join('.')
 }
 
-function addRule<T>(baseValidator: Validator<T>, check: Check, errorMessageBuilder: ErrorMessageBuilder) {
+function addRule<T>(baseValidator: Validator<T>, rule: ValidationRule) {
+    const [check, errorMessageBuilder] = rule
     return (x: any, errorCollector?: ValidationError[], path?: string): x is T => {
         const checkValid = check(x)
         if (errorCollector !== undefined && !checkValid) {
@@ -166,7 +154,10 @@ export function optionValidator<T>(baseValidator: Validator<T>): Validator<T | n
     }
 }
 
-function addRuleFor<T, K extends keyof T & string>(baseValidator: Validator<T>, key: K, check: Check, errorMessageBuilder: ErrorMessageBuilder) {
+function addRuleFor<T, K extends keyof T & string>(baseValidator: Validator<T>, key: K, rule: ValidationRule) {
+
+    const [check, errorMessageBuilder] = rule
+
     return (x: any, errorCollector?: ValidationError[], path?: string): x is T => {
         const isObject = typeof x === 'object'
         let checkValid = true
@@ -195,33 +186,33 @@ function addRuleFor<T, K extends keyof T & string>(baseValidator: Validator<T>, 
     }
 }
 
+function addSubValidator<T, K extends keyof T>(baseValidator: Validator<T>, key: K, subValidator: Validator<T[K]>): Validator<T> {
+    return (x: any, errorCollector?: ValidationError[], path?: string): x is T => {
+
+        const subValidatorPath = joinObjectPaths(path, key as string)
+        const subValidatorResult = subValidator(x[key], errorCollector, subValidatorPath)
+        const baseValidatorResult = baseValidator(x, errorCollector, path)
+
+        return !!(subValidatorResult && baseValidatorResult)
+    }
+}
+
 function makeValidatorBuilder<T>(x: Validator<T>): ValidatorBuilder<T> {
     const builder = <ValidatorBuilder<T>>x
     builder.withSubValidator = function <K extends keyof T>(key: K, rule: Validator<T[K]>) {
         const newValidator = addSubValidator(x, key, rule)
         return makeValidatorBuilder(newValidator)
     }
-    builder.withRule = function (check: Check, errorMessageBuilder: ErrorMessageBuilder) {
-        const newValidator = addRule(x, check, errorMessageBuilder)
+    builder.withRule = function (rule: ValidationRule) {
+        const newValidator = addRule(x, rule)
         return makeValidatorBuilder(newValidator)
     }
-    builder.withRuleFor = function <K extends keyof T & string>(key: K, rule: Check, errorMessageBuilder: ErrorMessageBuilder) {
-        const newValidator = addRuleFor(x, key, rule, errorMessageBuilder)
+    builder.withRuleFor = function <K extends keyof T & string>(key: K, rule: ValidationRule) {
+        const newValidator = addRuleFor(x, key, rule)
         return makeValidatorBuilder(newValidator)
     }
 
     return builder
-}
-
-function addSubValidator<T, K extends keyof T>(baseValidator: Validator<T>, key: K, rule: Validator<T[K]>): Validator<T> {
-    return (x: any, errorCollector?: ValidationError[], path?: string): x is T => {
-
-        const subValidatorPath = joinObjectPaths(path, key as string)
-        const subValidatorResult = rule(x[key], errorCollector, subValidatorPath)
-        const baseValidatorResult = baseValidator(x, errorCollector, path)
-
-        return !!(subValidatorResult && baseValidatorResult)
-    }
 }
 
 export function validatorFor<T>(check?: Check, errorMessageBuilder?: ErrorMessageBuilder): ValidatorBuilder<T> {
