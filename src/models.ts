@@ -2,6 +2,9 @@
 export type ObjectPath = string
 export type ErrorMessage = string
 
+
+
+
 /**
  * Represents a failure in validating that an object conforms to a type
  */
@@ -78,8 +81,16 @@ export interface ValidationError {
 export type Validator<T> = (
     value: any,
     errorCollector?: ValidationError[],
-    path?: ObjectPath
+    path?: ObjectPath,
+    contextValue?: any
 ) => value is T
+
+export type AsyncValidator<T> = (
+    value: any,
+    errorCollector?: ValidationError[],
+    path?: ObjectPath,
+    contextValue?: any
+) => Promise<boolean>
 
 /**
  * Represents a validation function checking some condition on a value
@@ -120,5 +131,12 @@ export interface ValidatorBuilder<T> extends Validator<T> {
     withRuleFor<K extends keyof T & string>(key: K, rule: Validator<T[K]>): ValidatorBuilder<T>
 
     withRuleFor<K extends keyof T & string>(key: K, check: Check, errorMessageBuilder: ErrorMessageBuilder): ValidatorBuilder<T>
-}
 
+    andAlso(rule: Validator<T>): ValidatorBuilder<T>
+
+    when(condition: Check): ValidatorBuilder<T>
+
+    isOptional(): ValidatorBuilder<T>
+
+    withRules(selfRule: Validator<T>, rules: { [K in keyof T]: Validator<T[K]> }): ValidatorBuilder<T>
+}

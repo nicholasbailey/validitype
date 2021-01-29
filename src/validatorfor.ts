@@ -33,18 +33,27 @@ export function optionValidator<T>(baseValidator: Validator<T>): Validator<T | n
 }
 
 function addSubValidator<T, K extends keyof T>(baseValidator: Validator<T>, key: K, subValidator: Validator<T[K]>): Validator<T> {
-    return (x: any, errorCollector?: ValidationError[], path?: string): x is T => {
-
+    return (x: any, errorCollector?: ValidationError[], path?: string, context?: any): x is T => {
         const subValidatorPath = joinObjectPaths(path, key as string)
         let subValidatorResult: boolean
         if (x.hasOwnProperty && x.hasOwnProperty(key)) {
-            subValidatorResult = subValidator(x[key], errorCollector, subValidatorPath)
+            subValidatorResult = subValidator(x[key], errorCollector, subValidatorPath, x)
         } else {
             subValidatorResult = false
         }
         const baseValidatorResult = baseValidator(x, errorCollector, path)
 
         return !!(subValidatorResult && baseValidatorResult)
+    }
+}
+
+function addWhen<T>(baseValiator: Validator<T>, contextCheck: Check): Validator<T> {
+    return (x: any, errorCollector?: ValidationError[], path?: string, context?: any): x is T => {
+        if (context === undefined || contextCheck(context)) {
+            return baseValiator(x, errorCollector, path, context)
+        } else {
+            return true
+        }
     }
 }
 
@@ -73,13 +82,18 @@ function makeValidatorBuilder<T>(baseValidator: Validator<T>): ValidatorBuilder<
         return makeValidatorBuilder(newValidator)
     }
 
+    builder.when = function (check: Check) {
+        const newValidator = addWhen(baseValidator, check)
+        return makeValidatorBuilder(newValidator)
+    }
+
     return builder
 }
 
 export function validatorFor<T>(check?: Check, errorMessageBuilder?: ErrorMessageBuilder): ValidatorBuilder<T> {
     let validator: ValidatorBuilder<T>
     if (check !== undefined && errorMessageBuilder !== undefined) {
-        validator = <ValidatorBuilder<T>>function (x: any, errorCollector?: ValidationError[], path?: string): x is T {
+        validator = <ValidatorBuilder<T>>function (x: any, errorCollector?: ValidationError[], path?: string, contextValue?: any): x is T {
             const valid = check(x)
             if (errorCollector !== undefined && !valid) {
                 errorCollector.push({
@@ -90,7 +104,7 @@ export function validatorFor<T>(check?: Check, errorMessageBuilder?: ErrorMessag
             return valid
         }
     } else {
-        validator = <ValidatorBuilder<T>>function (x: any, errorCollector?: ValidationError[], path?: string): x is T {
+        validator = <ValidatorBuilder<T>>function (x: any, errorCollector?: ValidationError[], path?: string, contextValue?: any): x is T {
             return true
         }
     }
